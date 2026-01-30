@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.4] - 2026-01-30
+
+### Fixed
+- Fixed missing asyncio import in diagnostics.py causing "Invalid handler specified" error
+- Fixed config flow loading issue
+
+## [0.0.3] - 2026-01-30
+
+### Added
+
+- **Integrated Server Management**: Integration can now start and manage the Tado Local server
+- Server auto-start option during installation
+- Bridge IP and PIN configuration in config flow
+- Server control services: start_server, stop_server, restart_server
+- Live server status sensor with automatic updates every 30 seconds
+- Server logs are now visible in Home Assistant logs
+
+### Changed
+
+- Config flow now accepts Bridge IP and PIN for server management
+- Options flow extended with Bridge configuration and auto-start toggle
+- Improved server status monitoring with detailed attributes
+
+### Notes
+
+- Server auto-start requires Bridge IP and HomeKit PIN
+- Server runs as subprocess managed by Home Assistant
+- All server output is logged to Home Assistant logs
+
 ## [0.0.2] - 2026-01-30
 
 ### Changed
