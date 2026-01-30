@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.8] - 2026-01-30
 
 ### Fixed
+
 - Fixed config flow class names (ConfigFlow instead of TadoLocalConfigFlow)
 - Fixed "Config entry not found" error
 - Config flow now properly recognized by Home Assistant
