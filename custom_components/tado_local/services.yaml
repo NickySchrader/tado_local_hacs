@@ -1,2 +1,15 @@
-"""Services for Tado Local integration."""
-# Services can be added here for future expansion
+start_server:
+  name: Server starten
+  description: Startet den Tado Local Server
+
+stop_server:
+  name: Server stoppen
+  description: Stoppt den Tado Local Server
+
+restart_server:
+  name: Server neu starten
+  description: Startet den Tado Local Server neu
+
+check_server:
+  name: Server-Status prüfen
+  description: Prüft ob der Server erreichbar ist und loggt den Status

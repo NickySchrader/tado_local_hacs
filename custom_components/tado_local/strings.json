@@ -3,10 +3,13 @@
     "step": {
       "user": {
         "title": "Tado Local Setup",
-        "description": "Installation ohne Eingabe möglich. Konfiguration kann nachträglich in den Optionen vorgenommen werden.\n\nOptional kannst du jetzt Host und Port angeben:",
+        "description": "Installation ohne Eingabe möglich.\n\n**Optional:** Konfiguriere den integrierten Server:\n- Bridge IP: IP-Adresse deiner Tado Bridge\n- PIN: HomeKit PIN (Aufkleber auf der Bridge)\n- Auto-Start: Server automatisch starten",
         "data": {
-          "host": "Host (optional)",
-          "port": "Port (optional)"
+          "bridge_ip": "Bridge IP (optional)",
+          "pin": "HomeKit PIN (optional)",
+          "host": "API Host (optional)",
+          "port": "API Port (optional)",
+          "auto_start": "Server automatisch starten"
         }
       }
     },
@@ -22,10 +25,13 @@
     "step": {
       "init": {
         "title": "Tado Local Konfiguration",
-        "description": "Aktuelle Einstellungen:\nHost: {current_host}\nPort: {current_port}\n\nGib die Verbindungsdaten zu deinem Tado Local Server ein:",
+        "description": "**Server-Verwaltung**\n\nKonfiguriere Bridge-Verbindung und Server-Optionen:\n- Bridge IP & PIN: Für automatischen Server-Start\n- Host & Port: Wo der Server erreichbar ist\n- Auto-Start: Server beim Start der Integration starten",
         "data": {
-          "host": "Host",
-          "port": "Port"
+          "host": "API Host",
+          "port": "API Port",
+          "bridge_ip": "Bridge IP",
+          "pin": "HomeKit PIN",
+          "auto_start": "Server automatisch starten"
         }
       }
     },

@@ -17,8 +17,9 @@ import homeassistant.helpers.config_validation as cv
 
 from .const import (
     CONF_API_URL,
+    CONF_AUTO_START,
     CONF_BRIDGE_IP,
-    CONF_BRIDGE_PIN,
+    CONF_PIN,
     DEFAULT_NAME,
     DEFAULT_PORT,
     DOMAIN,
@@ -28,8 +29,11 @@ _LOGGER = logging.getLogger(__name__)
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
+        vol.Optional(CONF_BRIDGE_IP): cv.string,
+        vol.Optional(CONF_PIN): cv.string,
         vol.Optional(CONF_HOST, default="localhost"): cv.string,
         vol.Optional(CONF_PORT, default=DEFAULT_PORT): cv.port,
+        vol.Optional(CONF_AUTO_START, default=True): cv.boolean,
     }
 )
 
@@ -100,6 +104,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             host = user_input.get(CONF_HOST, "localhost")
             port = user_input.get(CONF_PORT, DEFAULT_PORT)
             api_url = f"http://{host}:{port}"
+            bridge_ip = user_input.get(CONF_BRIDGE_IP)
+            pin = user_input.get(CONF_PIN)
+            auto_start = user_input.get(CONF_AUTO_START, True)
             
             return self.async_create_entry(
                 title=DEFAULT_NAME,
@@ -107,6 +114,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_HOST: host,
                     CONF_PORT: port,
                     CONF_API_URL: api_url,
+                    CONF_BRIDGE_IP: bridge_ip,
+                    CONF_PIN: pin,
+                    CONF_AUTO_START: auto_start,
                 },
             )
 
@@ -114,7 +124,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=STEP_USER_DATA_SCHEMA,
             description_placeholders={
-                "info": "Die Verbindung kann nach der Installation in den Optionen konfiguriert werden."
+                "info": "Konfiguration optional. Bridge IP und PIN werden benötigt um den Server zu starten."
             }
         )
     
@@ -141,29 +151,23 @@ class TadoLocalOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
         
         if user_input is not None:
-            try:
-                info = await validate_input(self.hass, user_input)
-                
-                # Update config entry
-                self.hass.config_entries.async_update_entry(
-                    self.config_entry,
-                    data={
-                        CONF_HOST: user_input[CONF_HOST],
-                        CONF_PORT: user_input[CONF_PORT],
-                        CONF_API_URL: info["api_url"],
-                    },
-                )
-                
-                # Reload the integration
-                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-                
-                return self.async_create_entry(title="", data={})
-                
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
-            except Exception:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected exception")
-                errors["base"] = "unknown"
+            # Update config entry
+            self.hass.config_entries.async_update_entry(
+                self.config_entry,
+                data={
+                    CONF_HOST: user_input[CONF_HOST],
+                    CONF_PORT: user_input[CONF_PORT],
+                    CONF_API_URL: f"http://{user_input[CONF_HOST]}:{user_input[CONF_PORT]}",
+                    CONF_BRIDGE_IP: user_input.get(CONF_BRIDGE_IP),
+                    CONF_PIN: user_input.get(CONF_PIN),
+                    CONF_AUTO_START: user_input.get(CONF_AUTO_START, False),
+                },
+            )
+            
+            # Reload the integration
+            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+            
+            return self.async_create_entry(title="", data={})
 
         return self.async_show_form(
             step_id="init",
@@ -177,11 +181,22 @@ class TadoLocalOptionsFlow(config_entries.OptionsFlow):
                         CONF_PORT,
                         default=self.config_entry.data.get(CONF_PORT, DEFAULT_PORT)
                     ): cv.port,
+                    vol.Optional(
+                        CONF_BRIDGE_IP,
+                        default=self.config_entry.data.get(CONF_BRIDGE_IP, "")
+                    ): cv.string,
+                    vol.Optional(
+                        CONF_PIN,
+                        default=self.config_entry.data.get(CONF_PIN, "")
+                    ): cv.string,
+                    vol.Optional(
+                        CONF_AUTO_START,
+                        default=self.config_entry.data.get(CONF_AUTO_START, False)
+                    ): cv.boolean,
                 }
             ),
             errors=errors,
             description_placeholders={
-                "current_host": self.config_entry.data.get(CONF_HOST, "nicht konfiguriert"),
-                "current_port": str(self.config_entry.data.get(CONF_PORT, "nicht konfiguriert")),
+                "info": "Server-Verwaltung: Bridge IP, PIN und Auto-Start konfigurieren.",
             }
         )
