@@ -130,7 +130,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> config_entries.OptionsFlow:
         """Get the options flow for this handler."""
         return TadoLocalOptionsFlow(config_entry)
 
