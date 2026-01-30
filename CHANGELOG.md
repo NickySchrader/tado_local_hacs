@@ -5,9 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.8] - 2026-01-30
+
+### Fixed
+- Fixed config flow class names (ConfigFlow instead of TadoLocalConfigFlow)
+- Fixed "Config entry not found" error
+- Config flow now properly recognized by Home Assistant
+
 ## [0.0.7] - 2026-01-30
 
 ### Fixed
+
 - **Completely rewritten config_flow.py** to fix "Invalid handler specified" error
 - Simplified and cleaned up ConfigFlow class structure
 - Removed unnecessary validation functions that caused handler issues

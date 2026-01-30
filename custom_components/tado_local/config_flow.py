@@ -25,7 +25,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-class TadoLocalConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Tado Local."""
 
     VERSION = 1
@@ -75,12 +75,12 @@ class TadoLocalConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
-    ) -> TadoLocalOptionsFlow:
+    ) -> OptionsFlowHandler:
         """Get the options flow for this handler."""
-        return TadoLocalOptionsFlow(config_entry)
+        return OptionsFlowHandler(config_entry)
 
 
-class TadoLocalOptionsFlow(config_entries.OptionsFlow):
+class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow for Tado Local."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
