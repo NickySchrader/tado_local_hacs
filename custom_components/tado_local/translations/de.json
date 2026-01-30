@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Tado Local Einrichtung",
+        "description": "Konfiguriere die Verbindung zu deinem Tado Local Server.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung zum Tado Local Server fehlgeschlagen. Bitte überprüfe Host und Port.",
+      "unknown": "Ein unerwarteter Fehler ist aufgetreten."
+    },
+    "abort": {
+      "already_configured": "Dieser Tado Local Server ist bereits konfiguriert."
+    }
+  }
+}
