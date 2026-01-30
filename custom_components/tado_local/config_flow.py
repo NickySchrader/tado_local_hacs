@@ -1,6 +1,7 @@
 """Config flow for Tado Local integration."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -9,7 +10,7 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_PORT
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 import homeassistant.helpers.config_validation as cv
@@ -27,8 +28,8 @@ _LOGGER = logging.getLogger(__name__)
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_HOST, default="localhost"): cv.string,
-        vol.Required(CONF_PORT, default=DEFAULT_PORT): cv.port,
+        vol.Optional(CONF_HOST, default="localhost"): cv.string,
+        vol.Optional(CONF_PORT, default=DEFAULT_PORT): cv.port,
     }
 )
 
@@ -42,14 +43,39 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     port = data[CONF_PORT]
     api_url = f"http://{host}:{port}"
     
-    # Test the connection
+    _LOGGER.info("Testing connection to Tado Local at %s", api_url)
+    
+    # Test the connection - Tado Local has /status and /api endpoints
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(f"{api_url}/health", timeout=aiohttp.ClientTimeout(total=10)) as response:
-                if response.status != 200:
+            # Try /status endpoint first
+            async with session.get(
+                f"{api_url}/status", 
+                timeout=aiohttp.ClientTimeout(total=10)
+            ) as response:
+                _LOGGER.debug("Status response: %s", response.status)
+                if response.status not in (200, 503):  # 503 is OK if not fully initialized
+                    _LOGGER.error("Unexpected status code: %s", response.status)
                     raise CannotConnect
-    except (aiohttp.ClientError, TimeoutError) as err:
-        _LOGGER.error("Cannot connect to Tado Local API: %s", err)
+                
+                # Try to read response to confirm it's the right service
+                try:
+                    data = await response.json()
+                    _LOGGER.info("Successfully connected to Tado Local. Status: %s", data.get("status"))
+                except Exception as e:
+                    _LOGGER.warning("Could not parse status response, but connection OK: %s", e)
+                    
+    except aiohttp.ClientConnectorError as err:
+        _LOGGER.error("Cannot connect to %s: Connection refused or host unreachable", api_url)
+        raise CannotConnect from err
+    except asyncio.TimeoutError as err:
+        _LOGGER.error("Connection to %s timed out", api_url)
+        raise CannotConnect from err
+    except aiohttp.ClientError as err:
+        _LOGGER.error("Cannot connect to Tado Local API at %s: %s", api_url, err)
+        raise CannotConnect from err
+    except Exception as err:
+        _LOGGER.error("Unexpected error connecting to %s: %s", api_url, err)
         raise CannotConnect from err
 
     # Return info that you want to store in the config entry.
@@ -64,35 +90,98 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle the initial step."""
+        """Handle the initial step - allow installation without configuration."""
+        if user_input is not None:
+            # Check if there's already an instance
+            await self.async_set_unique_id(DOMAIN)
+            self._abort_if_unique_id_configured()
+            
+            # Create entry with default/provided values
+            host = user_input.get(CONF_HOST, "localhost")
+            port = user_input.get(CONF_PORT, DEFAULT_PORT)
+            api_url = f"http://{host}:{port}"
+            
+            return self.async_create_entry(
+                title=DEFAULT_NAME,
+                data={
+                    CONF_HOST: host,
+                    CONF_PORT: port,
+                    CONF_API_URL: api_url,
+                },
+            )
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=STEP_USER_DATA_SCHEMA,
+            description_placeholders={
+                "info": "Die Verbindung kann nach der Installation in den Optionen konfiguriert werden."
+            }
+        )
+    
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        """Get the options flow for this handler."""
+        return TadoLocalOptionsFlow(config_entry)
+
+
+class CannotConnect(HomeAssistantError):
+    """Error to indicate we cannot connect."""
+
+
+class TadoLocalOptionsFlow(config_entries.OptionsFlow):
+    """Handle options flow for Tado Local."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
+        self.config_entry = config_entry
+
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Manage the options."""
         errors: dict[str, str] = {}
         
         if user_input is not None:
             try:
                 info = await validate_input(self.hass, user_input)
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
-            except Exception:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected exception")
-                errors["base"] = "unknown"
-            else:
-                # Set unique ID to prevent duplicate entries
-                await self.async_set_unique_id(f"{user_input[CONF_HOST]}:{user_input[CONF_PORT]}")
-                self._abort_if_unique_id_configured()
                 
-                return self.async_create_entry(
-                    title=info["title"],
+                # Update config entry
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry,
                     data={
                         CONF_HOST: user_input[CONF_HOST],
                         CONF_PORT: user_input[CONF_PORT],
                         CONF_API_URL: info["api_url"],
                     },
                 )
+                
+                # Reload the integration
+                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+                
+                return self.async_create_entry(title="", data={})
+                
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected exception")
+                errors["base"] = "unknown"
 
         return self.async_show_form(
-            step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_HOST,
+                        default=self.config_entry.data.get(CONF_HOST, "localhost")
+                    ): cv.string,
+                    vol.Required(
+                        CONF_PORT,
+                        default=self.config_entry.data.get(CONF_PORT, DEFAULT_PORT)
+                    ): cv.port,
+                }
+            ),
+            errors=errors,
+            description_placeholders={
+                "current_host": self.config_entry.data.get(CONF_HOST, "nicht konfiguriert"),
+                "current_port": str(self.config_entry.data.get(CONF_PORT, "nicht konfiguriert")),
+            }
         )
-
-
-class CannotConnect(HomeAssistantError):
-    """Error to indicate we cannot connect."""

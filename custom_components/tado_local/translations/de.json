@@ -3,10 +3,10 @@
     "step": {
       "user": {
         "title": "Tado Local Einrichtung",
-        "description": "Konfiguriere die Verbindung zu deinem Tado Local Server.",
+        "description": "Installation ohne Eingabe möglich. Konfiguration kann nachträglich in den Optionen vorgenommen werden.\n\nOptional kannst du jetzt Host und Port angeben:",
         "data": {
-          "host": "Host",
-          "port": "Port"
+          "host": "Host (optional)",
+          "port": "Port (optional)"
         }
       }
     },
@@ -16,6 +16,22 @@
     },
     "abort": {
       "already_configured": "Dieser Tado Local Server ist bereits konfiguriert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Tado Local Konfiguration",
+        "description": "Aktuelle Einstellungen:\nHost: {current_host}\nPort: {current_port}\n\nGib die Verbindungsdaten zu deinem Tado Local Server ein:",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung zum Tado Local Server fehlgeschlagen. Bitte überprüfe Host und Port.",
+      "unknown": "Ein unerwarteter Fehler ist aufgetreten."
     }
   }
 }
